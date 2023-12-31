@@ -10,7 +10,7 @@ namespace KidsMealApi.Modules.Meals.Ports
         /// </summary>
         /// <param name="kidID"></param>
         /// <returns></returns>
-        IEnumerable<MealPreference> GetPreferences(IEnumerable<int> kidIDs, bool activeOnly = true);
+        IEnumerable<MealPreference> GetPreferences(IEnumerable<int> kidIDs, bool activeOnly = true, bool commonOnly = false);
         /// <summary>
         /// Get all the meals that a kid prefers to eat.
         /// </summary>
@@ -29,20 +29,20 @@ namespace KidsMealApi.Modules.Meals.Ports
         /// <param name="kidIds"></param>
         /// <param name="mealID"></param>
         /// <returns></returns>
-        (Meal Meal, IEnumerable<MealType> MealTypes) GetPreferredMealDetails(IEnumerable<int> kidIds, int mealID);
+        (Meal Meal, IEnumerable<MealType> MealTypes) GetCommonMealWithMealTypes(IEnumerable<int> kidIds, int mealID);
         /// <summary>
         /// Gets all the meal types for each of the meals that a kid prefers to eat.
         /// </summary>
         /// <param name="kidID"></param>
         /// <returns></returns>
-        Dictionary<Meal, IEnumerable<MealType>> GetAllPreferredMealDetails(int kidID);
+        Dictionary<Meal, IEnumerable<MealType>> GetMealsWithMealTypes(int kidID);
         /// <summary>
         /// Gets all the common meal types for each of the meals that a group of kids prefer to eat.
         /// </summary>
         /// <param name="kidIds"></param>
         /// <remarks>Only meal and meal type(s) combination that exactly match the preferences of all kids in the group will be returned.</remarks>
         /// <returns>A dictionary of meals and preferred meal types</returns>
-        Dictionary<Meal, IEnumerable<MealType>> GetAllPreferredMealDetails(IEnumerable<int> kidIds);
+        Dictionary<Meal, IEnumerable<MealType>> GetCommonMealsWithMealTypes(IEnumerable<int> kidIds);
         /// <summary>
         /// Add a meal preference for a children
         /// </summary>

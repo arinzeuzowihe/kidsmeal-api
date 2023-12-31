@@ -9,5 +9,6 @@ namespace KidsMealApi.Modules.Meals.Core
         public List<int> KidIDs { get; set; }
         public MealType MealType { get; set; }
         public bool IncludeTakeOut { get; set; }
+        public bool SameMealForAll { get; set; }
     }
 }

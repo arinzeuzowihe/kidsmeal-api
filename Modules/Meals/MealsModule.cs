@@ -36,7 +36,7 @@ public class MealsModule : IModule
         //Retrieve preferred meal details common to a group of kids or a single child
         endpoints.MapPost("/meal/preference/{mealId}", [Authorize] (List<int> kidIDs, int mealId, [FromServices] MealsModuleFacade facade) => {
 
-            var preferredMealDetails = facade.PreferenceService.GetPreferredMealDetails(kidIDs, mealId);
+            var preferredMealDetails = facade.PreferenceService.GetCommonMealWithMealTypes(kidIDs, mealId);
             var meal = preferredMealDetails.Meal;
             var mealTypes = preferredMealDetails.MealTypes;
 
@@ -128,12 +128,17 @@ public class MealsModule : IModule
             //Get last 3 days worth of history
             var endDate = DateTime.Now;
             var startDate = endDate.AddDays(-3);
-            var recentHistories = (facade.HistoryService.GetMealHistory(request.KidIDs, request.MealType)).Where(h => h.ConfirmedOn > startDate && endDate > h.ConfirmedOn);
-            var currentPreferences = facade.PreferenceService.GetPreferences(request.KidIDs).Where(p => p.MealType == request.MealType);
+            var recentHistories = new List<MealHistory>();
+            //we only care about meal history when each kid needs to get a distinct meal suggestion
+            if (!request.SameMealForAll)
+            {
+                recentHistories = facade.HistoryService.GetMealHistory(request.KidIDs, request.MealType).Where(h => h.ConfirmedOn > startDate && endDate > h.ConfirmedOn).ToList();
+            }
+            var currentPreferences = facade.PreferenceService.GetPreferences(request.KidIDs, commonOnly: request.SameMealForAll).Where(p => p.MealType == request.MealType);
             if (!request.IncludeTakeOut)
                 currentPreferences = currentPreferences.Where(p => !p.Meal.IsTakeout);
 
-            var mealSuggestions = facade.SuggestionService.GenerateNextMealSuggestion(request.KidIDs, request.MealType, recentHistories, currentPreferences.ToList());
+            var mealSuggestions = facade.SuggestionService.GenerateNextMealSuggestion(request.KidIDs, request.MealType, recentHistories, currentPreferences.ToList(), request.SameMealForAll);
             return Results.Ok(new PendingMealSuggestionResponse(mealSuggestions));
         } );
 

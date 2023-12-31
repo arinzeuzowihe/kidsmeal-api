@@ -11,14 +11,23 @@ namespace KidsMealApi.Modules.Meals.Adapters
         }
 
         ///<inheritdoc>
-        public IEnumerable<MealSuggestion> GenerateNextMealSuggestion(IEnumerable<int> kidIDs, MealType mealType, IEnumerable<MealHistory> recentHistories, IEnumerable<MealPreference> preferences)
+        public IEnumerable<MealSuggestion> GenerateNextMealSuggestion(IEnumerable<int> kidIDs, MealType mealType, IEnumerable<MealHistory> recentHistories, IEnumerable<MealPreference> preferences, bool enforceSameSuggestion = false)
         {
             var generatedMealSuggestions = new List<MealSuggestion>();
+
+            if (enforceSameSuggestion)
+            {
+                //same suggestion for all means we ignore the meal history for each individual child and generate suggestion 
+                // for one kid that will be applied to all other kids
+                var kidID = kidIDs.FirstOrDefault();
+                var mealPreferences = preferences.Where(p => p.KidId == kidID); //ideally only preferences common to all kids should be passed into this method
+                var suggestedMeal = getNextMealSuggestion(new List<MealHistory>(), mealPreferences);
+                generatedMealSuggestions.AddRange(kidIDs.Select(id => new MealSuggestion(id, suggestedMeal, mealType)));
+                return generatedMealSuggestions;
+            }
+
             foreach(var kidID in kidIDs)
             {
-                //Get history for kid
-                var mealHistories = recentHistories.Where(rh => rh.KidId == kidID);
-
                 //Get Preferences for kid
                 var mealPreferences = preferences.Where(p => p.KidId == kidID);
                 if (!mealPreferences.Any())
@@ -26,6 +35,9 @@ namespace KidsMealApi.Modules.Meals.Adapters
                     //TODO: Log "no preferences found for kid"
                     continue;
                 }
+
+                //Get history for kid
+                var mealHistories = recentHistories.Where(rh => rh.KidId == kidID);
 
                 //Get next meal suggestion
                 var suggestedMeal = getNextMealSuggestion(mealHistories, mealPreferences);

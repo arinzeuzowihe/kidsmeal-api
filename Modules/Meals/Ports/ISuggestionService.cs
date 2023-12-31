@@ -9,7 +9,7 @@ namespace KidsMealApi.Modules.Meals.Ports
         /// </summary>
         /// <param name="mealSuggestionIDs"></param>
         /// <returns></returns>
-        IEnumerable<MealSuggestion> GenerateNextMealSuggestion(IEnumerable<int> kidIDs, MealType mealType, IEnumerable<MealHistory> recentHistories, IEnumerable<MealPreference> preferences);
+        IEnumerable<MealSuggestion> GenerateNextMealSuggestion(IEnumerable<int> kidIDs, MealType mealType, IEnumerable<MealHistory> recentHistories, IEnumerable<MealPreference> preferences, bool enforceSameSuggestion = false);
         /// <summary>
         /// Retrieves existing meal suggestions from the data store.
         /// </summary>

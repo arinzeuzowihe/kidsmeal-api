@@ -32,17 +32,20 @@ namespace KidsMealApi.Modules.Meals.Adapters
             return GetPreferredMeals(kidIds);
         }
 
-        public IEnumerable<MealPreference> GetPreferences(IEnumerable<int> kidIds, bool activeOnly = true)
+        public IEnumerable<MealPreference> GetPreferences(IEnumerable<int> kidIds, bool activeOnly = true, bool commonOnly = false)
         {
             if (kidIds == null)
                 throw new ArgumentNullException(nameof(kidIds));
             var finalizedKidIds = kidIds.ToList();
+            if (commonOnly)
+            {
+                return getAllCommonMealPreferences(finalizedKidIds, activeOnly);
+            }
             IQueryable<MealPreference> preferences = GetAll().Include(mp => mp.Meal);
             if (finalizedKidIds.Count == 1)
                 preferences = preferences.Where(mp => mp.KidId == kidIds.FirstOrDefault());
             else if (finalizedKidIds.Count > 1)
                 preferences = preferences.Where(mp => kidIds.Contains(mp.KidId));
-            
             if (activeOnly)
                 preferences = preferences.Where(mp => mp.IsActive);
 
@@ -133,27 +136,27 @@ namespace KidsMealApi.Modules.Meals.Adapters
             return _dbContext.MealPreferences;
         }
 
-        public Dictionary<Meal, IEnumerable<MealType>> GetAllPreferredMealDetails(IEnumerable<int> kidIds)
+        public Dictionary<Meal, IEnumerable<MealType>> GetCommonMealsWithMealTypes(IEnumerable<int> kidIds)
         {
 
             if (kidIds == null)
                 throw new ArgumentNullException(nameof(kidIds));
 
-            return getMealTypeOccurrences(kidIds);
+            return getCommonMealTypeOccurrences(kidIds);
         }
 
-        public Dictionary<Meal, IEnumerable<MealType>> GetAllPreferredMealDetails(int kidID)
+        public Dictionary<Meal, IEnumerable<MealType>> GetMealsWithMealTypes(int kidID)
         {
-            return getMealTypeOccurrences(new List<int> { kidID });
+            return getCommonMealTypeOccurrences(new List<int> { kidID });
         }
 
-        public (Meal Meal, IEnumerable<MealType> MealTypes) GetPreferredMealDetails(IEnumerable<int> kidIds, int mealID)
+        public (Meal Meal, IEnumerable<MealType> MealTypes) GetCommonMealWithMealTypes(IEnumerable<int> kidIds, int mealID)
         {
-            var preferenceKvp = getMealTypeOccurrences(kidIds, mealID).Single();
+            var preferenceKvp = getCommonMealTypeOccurrences(kidIds, mealID).Single();
             return (preferenceKvp.Key, preferenceKvp.Value);
         }
 
-        private Dictionary<Meal, IEnumerable<MealType>> getMealTypeOccurrences(IEnumerable<int> kidIds, int? mealID = null)
+        private Dictionary<Meal, IEnumerable<MealType>> getCommonMealTypeOccurrences(IEnumerable<int> kidIds, int? mealID = null)
         {
             if (kidIds == null)
                 throw new ArgumentNullException(nameof(kidIds));
@@ -190,6 +193,23 @@ namespace KidsMealApi.Modules.Meals.Adapters
                                                 MealTypes = gp.Select(g => g.MealType)
                                             })
                                             .ToDictionary(c => c.Meal, c => c.MealTypes);
+        }
+
+        private List<MealPreference> getAllCommonMealPreferences(List<int> kidIds, bool activeOnly = true)
+        {
+            var allPreferences = GetAll().Include(mp => mp.Meal)
+                                         .Where(mp => kidIds.Contains(mp.KidId));      
+            if (activeOnly)
+            {
+                allPreferences = allPreferences.Where(mp => mp.IsActive);
+            }
+            var allPreferencesGroupedByMeal = allPreferences.ToList().GroupBy(mp => mp.MealId);
+            var commonPreferences = new List<MealPreference>();
+            foreach (var group in allPreferencesGroupedByMeal.Where(g => g.Count() == kidIds.Count))
+            {
+                commonPreferences.AddRange(group.ToList());
+            }
+            return commonPreferences;
         }
 
         private async Task updateActiveStatusAsync(List<MealPreference> mealPreferencesToUpdate, bool isActive)
