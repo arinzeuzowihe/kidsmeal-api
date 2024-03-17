@@ -46,7 +46,7 @@ namespace KidsMealApi.Modules.Kids
                 await db.SaveChangesAsync();
                 return Results.NoContent();
             });
-
+            
             return endpoints;
         }
 

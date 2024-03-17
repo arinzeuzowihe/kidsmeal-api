@@ -30,5 +30,7 @@ namespace KidsMealApi.Modules.Users.Core
         public int Id { get; set; }
         [AllowNull]
         public string Name { get; set; }
+        [AllowNull]
+        public string ProfilePicUrl { get; set; }
     }
 }

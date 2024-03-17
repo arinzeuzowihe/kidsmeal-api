@@ -1,16 +1,30 @@
+using System.Reflection.Metadata;
+using System.Text;
+using Amazon;
+using Amazon.Runtime;
+using Amazon.Runtime.CredentialManagement;
+using Amazon.S3;
+using Amazon.S3.Model;
 using KidsMealApi.DataAccess;
 using KidsMealApi.DataAccess.Models;
 using KidsMealApi.Modules.Users.Core;
 using KidsMealApi.Modules.Users.Ports;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace KidsMealApi.Modules.Users.Adapters
 {
     public class UserService : BaseDataAccessService<User>, IUserService
     {
-        public UserService(KidsMealDbContext dbContext):base(dbContext)
+        private const string s3ObjectAttribute = "ObjectSize";
+        private const string s3ProfileObjectPrefix = "profile";
+        private const string s3ProfileObjectFileExtension = ".png";
+        private readonly UserOptions _options;
+
+        public UserService(KidsMealDbContext dbContext, 
+                           IOptions<UserOptions> options):base(dbContext)
         {
-            
+            _options = options.Value;
         }
 
         protected override IQueryable<User> GetAll()
@@ -35,7 +49,7 @@ namespace KidsMealApi.Modules.Users.Adapters
             return existingUser;
         }
 
-        public (LoginValidationStatus, User?) ValidateLoginRequest(LoginRequest request)
+        public async Task<(LoginValidationStatus, User?)> ValidateLoginRequestAsync(LoginRequest request)
         {
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
@@ -48,7 +62,7 @@ namespace KidsMealApi.Modules.Users.Adapters
             if (string.IsNullOrWhiteSpace(password))
                 throw new ArgumentNullException(nameof(password));
 
-            var existingUser = lookUpUserByEmail(username, true);
+            var existingUser = await lookUpUserByEmailAsync(username, true);
             if (existingUser == null)
                 return (LoginValidationStatus.USER_NOT_FOUND, null);
 
@@ -59,7 +73,7 @@ namespace KidsMealApi.Modules.Users.Adapters
             return (LoginValidationStatus.VALID, existingUser);
         }
 
-        private User? lookUpUserByEmail(string emailAddress, bool includeChildInfo = false)
+        private async Task<User?> lookUpUserByEmailAsync(string emailAddress, bool includeChildInfo = false)
         {
             if (string.IsNullOrWhiteSpace(emailAddress))
                 throw new ArgumentNullException(nameof(emailAddress));
@@ -71,7 +85,64 @@ namespace KidsMealApi.Modules.Users.Adapters
                              .ThenInclude(ka => ka.Kid);
             }
             
-            return query.FirstOrDefault(u => u.Email == emailAddress);
+            var foundUser = query.FirstOrDefault(u => u.Email == emailAddress);
+            if (foundUser == null)
+            {
+                return null;
+            }
+            var kids = foundUser.KidAssociations.Select(ka => ka.Kid).ToList();
+            if (kids.Any())
+            {
+                await populateKidProfilePicUrlsAsync(kids);
+            }
+
+            return foundUser;
+        }
+
+        private async Task populateKidProfilePicUrlsAsync(List<Kid> kids)
+        {
+            var chain = new CredentialProfileStoreChain();
+            AWSCredentials aWSCredentials;
+            var profilePicDomain = new StringBuilder();
+            if (chain.TryGetAWSCredentials(_options.ProfileName, out aWSCredentials))
+            {
+                var regionEndPoint = RegionEndpoint.GetBySystemName(_options.Region);
+                using (var client = new AmazonS3Client(aWSCredentials, regionEndPoint))
+                {
+                    var bucketResponse = await client.ListBucketsAsync();
+                    var bucket = bucketResponse.Buckets.FirstOrDefault(b => b.BucketName == _options.S3BucketName);
+                    if (bucket == null)
+                    {
+                        return;
+                    }
+
+                    profilePicDomain.Append($"{bucket.BucketName}");
+                    profilePicDomain.Append($".{client.Config.AuthenticationServiceName}");
+                    profilePicDomain.Append($".{client.Config.RegionEndpoint.SystemName}");
+                    profilePicDomain.Append($".{client.Config.RegionEndpoint.PartitionDnsSuffix}");
+
+                    var objectSizeAttribute = new ObjectAttributes(s3ObjectAttribute);
+                    foreach (var kid in kids)
+                    {
+                        var profilePicFileName = s3ProfileObjectPrefix + kid.Id.ToString() + s3ProfileObjectFileExtension;
+                        // check that the objects exists other display default pic
+                        var attributesRequest = new GetObjectAttributesRequest
+                        {
+                            BucketName = bucket.BucketName,
+                            Key = profilePicFileName,
+                            ObjectAttributes = new List<ObjectAttributes>{objectSizeAttribute}
+                        };
+
+                        var attributeResponse = await client.GetObjectAttributesAsync(attributesRequest);
+                        if (attributeResponse?.ObjectSize > 0)
+                        {
+                            var objectUrl = new UriBuilder("https", profilePicDomain.ToString());
+                            objectUrl.Path = profilePicFileName;
+                            kid.ProfilePicUrl = objectUrl.ToString();
+                        }
+                    }
+                }
+            }
         }
 
         public async Task<bool> UpdateAuthorizationDetailsAsync(User user, string refreshToken,  DateTime refreshTokenExpiration, DateTime refreshTokenIssuance)

@@ -1,9 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "PI7A9aVShz8mgLMTn1otQNr74z+jjwyzFX41XUq7syz3MSX2F5reu7P0jLAjYpmbZtN8lCR28IIaoieTwmkpwA==",
+  "dgSpecHash": "2AHOdC6Fl+b9noCivTVMAw/UQzKpJ6ZUidY6YAsrM8YTZSiL8SYesJIXMnW6KD2OTZbw31JblXByjBYBnxjamA==",
   "success": true,
   "projectFilePath": "/Users/arinzeuzowihe/Documents/Projects/Personal/kids-plate/server/KidsMealApi/KidsMealApi.csproj",
   "expectedPackageFiles": [
+    "/Users/arinzeuzowihe/.nuget/packages/awssdk.core/3.7.302/awssdk.core.3.7.302.nupkg.sha512",
+    "/Users/arinzeuzowihe/.nuget/packages/awssdk.s3/3.7.305.17/awssdk.s3.3.7.305.17.nupkg.sha512",
     "/Users/arinzeuzowihe/.nuget/packages/bcrypt.net-next/4.0.3/bcrypt.net-next.4.0.3.nupkg.sha512",
     "/Users/arinzeuzowihe/.nuget/packages/efcore.namingconventions/6.0.0/efcore.namingconventions.6.0.0.nupkg.sha512",
     "/Users/arinzeuzowihe/.nuget/packages/microsoft.aspnetcore.authentication.jwtbearer/6.0.8/microsoft.aspnetcore.authentication.jwtbearer.6.0.8.nupkg.sha512",

@@ -29,6 +29,8 @@ namespace KidsMealApi.DataAccess.Models
         public string? LastName { get; set; }
         [NotMapped]
         public string FullName => $"{FirstName} {LastName}";
+        [NotMapped]
+        public string ProfilePicUrl { get; set; }
         public DateTime BirthDate { get; set; }
         public Gender Gender { get; set; }
         [AllowNull]

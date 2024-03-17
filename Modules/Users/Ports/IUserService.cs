@@ -8,7 +8,7 @@ namespace KidsMealApi.Modules.Users.Ports
     {
         Task<User> GetUserByIDAsync(int userId);
         User GetUserByEmail(string emailAddress);
-        (LoginValidationStatus Status, User? User) ValidateLoginRequest(LoginRequest request);
+        Task<(LoginValidationStatus Status, User? User)> ValidateLoginRequestAsync(LoginRequest request);
         Task<bool> UpdateAuthorizationDetailsAsync(User user, string refreshToken, DateTime refreshTokenExpiration, DateTime refreshTokenIssuance);
         Task<bool> ClearAuthorizationDetailsAsync(User user);
     }

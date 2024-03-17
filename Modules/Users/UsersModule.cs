@@ -20,7 +20,7 @@ namespace KidsMealApi.Modules.Users
         public IEndpointRouteBuilder MapEndpoints(IEndpointRouteBuilder endpoints)
         {
             endpoints.MapPost("/login", [AllowAnonymous] async (LoginRequest request, [FromServices]UsersModuleFacade facade) => {
-                var validationResults = facade.UserService.ValidateLoginRequest(request);
+                var validationResults = await facade.UserService.ValidateLoginRequestAsync(request);
                 if (validationResults.Status == LoginValidationStatus.USER_NOT_FOUND)
                     return Results.BadRequest("Invalid email/password combination. Please try again.");
                 
@@ -42,7 +42,7 @@ namespace KidsMealApi.Modules.Users
 
                 await facade.RefreshTokenHistoryService.ClearAllAsync(existingUser.Id);
                 var response = new LoginResponse(existingUser.Id, existingUser.Name, accessToken, refreshTokenResults.RefreshToken);
-                response.Kids = existingUser.KidAssociations.Select(ka => new BasicKidInfo { Id = ka.KidId, Name = ka.Kid.FullName }).ToList();
+                response.Kids = existingUser.KidAssociations.Select(ka => new BasicKidInfo { Id = ka.KidId, Name = ka.Kid.FullName, ProfilePicUrl = ka.Kid.ProfilePicUrl }).ToList();
                 return Results.Ok(response);
 
             });
@@ -148,6 +148,8 @@ namespace KidsMealApi.Modules.Users
                 };
 
             });
+
+            services.Configure<UserOptions>(configuration.GetSection(UserOptions.CustomAWSSection));
 
             return services;
         }
