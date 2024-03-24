@@ -19,10 +19,10 @@ namespace KidsMealApi.Modules.Users.Adapters
         private const string s3ObjectAttribute = "ObjectSize";
         private const string s3ProfileObjectPrefix = "profile";
         private const string s3ProfileObjectFileExtension = ".png";
-        private readonly UserOptions _options;
+        private readonly UserServiceOptions _options;
 
         public UserService(KidsMealDbContext dbContext, 
-                           IOptions<UserOptions> options):base(dbContext)
+                           IOptions<UserServiceOptions> options):base(dbContext)
         {
             _options = options.Value;
         }

@@ -3,7 +3,7 @@
 /// <see cref="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options?view=aspnetcore-8.0"/>
 /// for more on this pattern.
 /// </summary>
-public class UserOptions
+public class UserServiceOptions
 {
     public const string CustomAWSSection = "AWS-Custom";
 

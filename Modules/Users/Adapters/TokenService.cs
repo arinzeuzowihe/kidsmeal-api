@@ -5,22 +5,17 @@ using System.Text;
 using KidsMealApi.Modules.Users.Ports;
 using Microsoft.IdentityModel.Tokens;
 using KidsMealApi.DataAccess.Models;
+using Microsoft.Extensions.Options;
 
 namespace KidsMealApi.Modules.Users.Adapters
 {
     public class TokenService : ITokenService
     {
-        public string Key { get; init; }
-        public string Issuer { get; init; }
-        public string Audience { get; init; }
-        public int TokenExpirationPeriod { get; init; }
-        public int IssuanceThreshold { get; set; }
+        private readonly TokenServiceOptions _options;
 
-        public TokenService (string key, string issuer, string audience)
+        public TokenService(IOptions<TokenServiceOptions> options)
         {
-            Key = key;
-            Issuer = issuer;
-            Audience = audience;
+            _options = options.Value;
         } 
 
         public string BuildAccessToken(User user)
@@ -35,9 +30,9 @@ namespace KidsMealApi.Modules.Users.Adapters
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
             };
 
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Key));
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Key));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-            var tokenDescriptor = new JwtSecurityToken(Issuer, Audience, claims, expires: DateTime.Now.AddHours(1), signingCredentials: credentials);
+            var tokenDescriptor = new JwtSecurityToken(_options.Issuer, _options.Audience, claims, expires: DateTime.Now.AddMinutes(_options.TokenExpiration), signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
         }
@@ -55,7 +50,7 @@ namespace KidsMealApi.Modules.Users.Adapters
 
             DateTime? updatedExpiration = null;
             if (isExpirationEligibleForExtension(user.RefreshTokenIssuance, user.RefreshTokenExpiration))
-                updatedExpiration = user.RefreshTokenExpiration.AddDays(1);
+                updatedExpiration = user.RefreshTokenExpiration.AddMinutes(_options.RefreshTokenExpiration);
             
             return (refreshToken, updatedExpiration);
         }
@@ -66,9 +61,9 @@ namespace KidsMealApi.Modules.Users.Adapters
                 ValidateAudience = true,
                 ValidateIssuer = true,
                 ValidateIssuerSigningKey = true,
-                ValidAudience = Audience,
-                ValidIssuer = Issuer,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Key)),
+                ValidAudience = _options.Audience,
+                ValidIssuer = _options.Issuer,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Key)),
                 ValidateLifetime = false //TODO: re-evaluate if I want to turn this on
             };
 
@@ -99,7 +94,7 @@ namespace KidsMealApi.Modules.Users.Adapters
                 return (false, RefreshTokenValidationErrors.USER_MISMATCH);
                     
             //Check if refresh token's expiration has been reached without a refresh token being issued recently
-            var wasRefreshTokenRecentlyIssued = user.RefreshTokenIssuance.AddHours(1) > DateTime.Now;
+            var wasRefreshTokenRecentlyIssued = user.RefreshTokenIssuance.AddMinutes(_options.RefreshTokenIssuanceThreshold) > DateTime.Now;
             var hasRefreshTokenExpired = user.RefreshTokenExpiration <= DateTime.Now;
             if (hasRefreshTokenExpired && !wasRefreshTokenRecentlyIssued)
                 return (false, RefreshTokenValidationErrors.EXPIRED);
@@ -109,7 +104,7 @@ namespace KidsMealApi.Modules.Users.Adapters
 
         private bool isExpirationEligibleForExtension(DateTime issueDateTime, DateTime expirationDateTime)
         {
-            var wasRefreshTokenRecentlyIssued = issueDateTime.AddHours(1) > DateTime.Now;
+            var wasRefreshTokenRecentlyIssued = issueDateTime.AddMinutes(_options.RefreshTokenIssuanceThreshold) > DateTime.Now;
             var hasRefreshTokenExpired = expirationDateTime <= DateTime.Now;            
             return hasRefreshTokenExpired && wasRefreshTokenRecentlyIssued;
         }

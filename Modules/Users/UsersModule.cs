@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using KidsMealApi.Modules.Users.Ports;
 using Microsoft.AspNetCore.Mvc;
 using KidsMealApi.Modules.Interfaces;
+using System.Collections.Specialized;
 
 namespace KidsMealApi.Modules.Users
 {
@@ -16,7 +17,8 @@ namespace KidsMealApi.Modules.Users
     /// </summary>
     public class UsersModule : IModule
     {
-
+        private int _refreshTokenExpiration { get; set; }
+        
         public IEndpointRouteBuilder MapEndpoints(IEndpointRouteBuilder endpoints)
         {
             endpoints.MapPost("/login", [AllowAnonymous] async (LoginRequest request, [FromServices]UsersModuleFacade facade) => {
@@ -36,7 +38,7 @@ namespace KidsMealApi.Modules.Users
                 if (string.IsNullOrWhiteSpace(accessToken) || string.IsNullOrWhiteSpace(refreshTokenResults.RefreshToken))
                     throw new Exception("Unable to login at this time. Please try again later.");
 
-                var wasAuthorizationDetailsUpdated = await facade.UserService.UpdateAuthorizationDetailsAsync(existingUser, refreshTokenResults.RefreshToken, DateTime.UtcNow.AddDays(1), DateTime.UtcNow);
+                var wasAuthorizationDetailsUpdated = await facade.UserService.UpdateAuthorizationDetailsAsync(existingUser, refreshTokenResults.RefreshToken, DateTime.UtcNow.AddMinutes(_refreshTokenExpiration), DateTime.UtcNow);
                 if (!wasAuthorizationDetailsUpdated)
                     throw new Exception("Unable to complete login at this time. Please try again later.");
 
@@ -120,14 +122,14 @@ namespace KidsMealApi.Modules.Users
 
         public IServiceCollection RegisterModule(IServiceCollection services, IConfiguration configuration)
         {
-            //Inject TokenService into WebApplicationBuilder services
             var key = configuration["Jwt:Key"] ?? string.Empty;
             var issuer = configuration["Jwt:Issuer"] ?? string.Empty;
             var audience = configuration["Jwt:Audience"] ?? string.Empty;
             if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(issuer) || string.IsNullOrEmpty(audience))
                 throw new TypeInitializationException( typeof(TokenService).FullName, new("Missing configurations for token service"));
 
-            services.AddSingleton<ITokenService, TokenService>(t => new TokenService(key, issuer, audience));
+            //Inject TokenService into WebApplicationBuilder services
+            services.AddSingleton<ITokenService, TokenService>();
             services.AddTransient<IUserService, UserService>();
             services.AddTransient<IRefreshTokenHistoryService, RefreshTokenHistoryService>();
             services.AddTransient<UsersModuleFacade>();
@@ -149,7 +151,10 @@ namespace KidsMealApi.Modules.Users
 
             });
 
-            services.Configure<UserOptions>(configuration.GetSection(UserOptions.CustomAWSSection));
+            services.Configure<UserServiceOptions>(configuration.GetSection(UserServiceOptions.CustomAWSSection));
+            services.Configure<TokenServiceOptions>(configuration.GetSection(TokenServiceOptions.JwtSection));
+
+            _refreshTokenExpiration = int.TryParse(configuration["Jwt:RefreshTokenExpiration"], out int parsedSetting) ? parsedSetting : 3600;
 
             return services;
         }
