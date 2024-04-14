@@ -4,35 +4,28 @@
 version: 2.1
 
 orbs:
-  windows: circleci/windows@2.2.0
+  windows: circleci/windows@5.0
 
 jobs:
-  initialize:
-    description: Install Prerequisites for build
-      steps:
-        - checkout
-        - restore_cache:
-            keys:
-              - dotnet-packages-v1-{{ checksum "KidsMealApi.csproj"}}
-        - run:
-            name: "Install Project Dependecies"
-            command: dotnet.exe restore
-        - save_cache:
-            paths:
-              - C:\User\circleci\.nuget\packages
-            key: dotnet-packages-v1-{{ checksum "KidsMealApi.csproj"}}
-  build:
-    description: Build application with release configs
-      name: windows/default
+  build-and-test:
+    executor:
+      name: win/default
+      version: edge
     steps:
       - checkout
+      - run:
+          name: "Install Project Dependecies"
+          command: dotnet.exe restore
       - run:
           name: "Build web api for release"
           command: dotnet.exe build --configuration release
 workflows:
-  initialize_and_build:
+  build-and-unittest:
     jobs:
-      - initialize
-      - build:
-          requires:
-            - initialize
+      - build-and-test
+  
+   
+    
+
+      
+            
