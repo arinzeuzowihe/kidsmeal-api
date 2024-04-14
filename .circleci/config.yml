@@ -9,7 +9,6 @@ orbs:
 jobs:
   initialize:
     description: Install Prerequisites for build
-        name: "windows/default"
       steps:
         - checkout
         - restore_cache:
