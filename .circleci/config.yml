@@ -9,8 +9,7 @@ orbs:
 jobs:
   build-and-test:
     executor:
-      name: win/server-2019
-      version: edge
+      name: win/server-2022
     steps:
       - checkout
       - run:
