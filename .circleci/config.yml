@@ -2,42 +2,40 @@
 # This is a generic template to serve as a base for your custom config
 # See: https://circleci.com/docs/configuration-reference
 version: 2.1
+
+orbs:
+  windows: circleci/windows@2.2.0
+
 jobs:
-  test:
-    docker:
-      - image: cimg/base:stable
-    steps:
-      - checkout
-      # Replace this with a real test runner invocation
-      - run:
-          name: Run tests
-          command: echo 'replace me with real tests!'
+  initialize:
+    description: Install Prerequisites for build
+      executor: 
+        name: windows/default
+      steps:
+        - checkout
+        - restore_cache:
+            keys:
+              - dotnet-packages-v1-{{ checksum "XXXXXXX"}}
+        - run:
+            name: "Install Project Dependecies"
+            command: dotnet.exe restore
+        - save_cache:
+            paths:
+              - C:\User\circleci\.nuget\packages
+            key: dotnet-packages-v1-{{ checksum "XXXXXXX"}}
   build:
-    docker:
-      - image: cimg/base:stable
+    description: Build application with release configs
+    executor:
+      name: windows/default
     steps:
       - checkout
-      # Replace this with steps to build a package, or executable
       - run:
-          name: Build an artifact
-          command: touch example.txt
-      - store_artifacts:
-          path: example.txt
-  deploy:
-    docker:
-      - image: cimg/base:stable
-    steps:
-      # Replace this with steps to deploy to users
-      - run:
-          name: deploy
-          command: '#e.g. ./deploy.sh'
+          name: Build web api for release
+          command: dotnet.exe build --configuration release
 workflows:
-  example:
+  initialize_and_build:
     jobs:
-      - test
+      - initialize
       - build:
           requires:
-            - test
-      - deploy:
-          requires:
-            - test
+            - initialize
