@@ -6,41 +6,57 @@
 trigger:
 - master
 
-pool:
-  vmImage: 'windows-latest'
-
 variables:
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
   project: '**/KidsMealApi.csproj'
 
-steps:
-- task: NuGetToolInstaller@1
-  name: 'NugetToolInstaller'
-  displayName: 'Nuget tool installer'
+jobs:
+  - job: NugetToolInstallerJob
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - task: NuGetToolInstaller@1
+      name: 'NugetToolInstaller'
+      displayName: 'Nuget tool installer'
+  
+  - job: NugetRestoreJob
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - task: NuGetCommand@2
+      name: 'NugetRestore'
+      displayName: 'Nuget restore packages'
+      inputs:
+        command: 'restore'
+        restoreSolution: '$(project)'
+        feedsToUse: 'select'
+    dependsOn: NugetToolInstallerJob
 
-- task: NuGetCommand@2
-  name: 'NugetRestore'
-  displayName: 'Nuget restore packages'
-  inputs:
-    command: 'restore'
-    restoreSolution: '$(project)'
-    feedsToUse: 'select'
+  - job: PublishJob
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - task: DotNetCoreCLI@2
+      name: 'Publish'
+      displayName: 'Publish'
+      inputs:
+        command: 'publish'
+        publishWebProjects: false
+        projects: '$(project)'
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+        zipAfterPublish: false
+    dependsOn: NugetRestoreJob
 
-- task: DotNetCoreCLI@2
-  name: 'Publish'
-  displayName: 'Publish'
-  inputs:
-    command: 'publish'
-    publishWebProjects: false
-    projects: '$(project)'
-    arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
-    zipAfterPublish: false
-    
-- task: PublishBuildArtifacts@1
-  name: 'PublishBuildArtifacts'
-  displayName: 'Publish Build Artifacts'
-  inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-    ArtifactName: 'AzureKidsMealApiProject'
-    publishLocation: 'Container'
+  - job: PublishBuildArtifactsJob
+    pool:
+      vmImage: 'windows-latest'
+    steps:    
+    - task: PublishBuildArtifacts@1
+      name: 'PublishBuildArtifacts'
+      displayName: 'Publish Build Artifacts'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'AzureKidsMealApiProject'
+        publishLocation: 'Container'
+    dependsOn: PublishJob   
