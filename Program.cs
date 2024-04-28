@@ -19,7 +19,7 @@ internal class Program
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.RegisterModules(builder.Configuration); //Automatically discover and register all modules
         //builder.Services.AddDbContext<KidsMealDbContext>(opt => opt.UseInMemoryDatabase("KidMeals"));
-        builder.Services.AddDbContext<KidsMealDbContext>(opt => opt.UseNpgsql(builder.Configuration["DbConnectionString"] ?? "")
+        builder.Services.AddDbContext<KidsMealDbContext>(opt => opt.UseNpgsql(builder.Configuration["DbConnectionString"])
                                                                    .UseSnakeCaseNamingConvention());
         NpgsqlConnection.GlobalTypeMapper.MapEnum<MealType>("mealtype", new NpgsqlNullNameTranslator());
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
