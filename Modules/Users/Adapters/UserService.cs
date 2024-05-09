@@ -104,10 +104,11 @@ namespace KidsMealApi.Modules.Users.Adapters
             var chain = new CredentialProfileStoreChain();
             AWSCredentials aWSCredentials;
             var profilePicDomain = new StringBuilder();
-            if (chain.TryGetAWSCredentials(_options.ProfileName, out aWSCredentials))
+            var profileCredentialsFound = chain.TryGetAWSCredentials(_options.ProfileName, out aWSCredentials);
+            var regionEndPoint = RegionEndpoint.GetBySystemName(_options.Region);
+            try
             {
-                var regionEndPoint = RegionEndpoint.GetBySystemName(_options.Region);
-                using (var client = new AmazonS3Client(aWSCredentials, regionEndPoint))
+                using (var client = profileCredentialsFound ? new AmazonS3Client(aWSCredentials, regionEndPoint) : new AmazonS3Client(regionEndPoint))
                 {
                     var bucketResponse = await client.ListBucketsAsync();
                     var bucket = bucketResponse.Buckets.FirstOrDefault(b => b.BucketName == _options.S3BucketName);
@@ -130,7 +131,7 @@ namespace KidsMealApi.Modules.Users.Adapters
                         {
                             BucketName = bucket.BucketName,
                             Key = profilePicFileName,
-                            ObjectAttributes = new List<ObjectAttributes>{objectSizeAttribute}
+                            ObjectAttributes = new List<ObjectAttributes> { objectSizeAttribute }
                         };
 
                         var attributeResponse = await client.GetObjectAttributesAsync(attributesRequest);
@@ -142,6 +143,10 @@ namespace KidsMealApi.Modules.Users.Adapters
                         }
                     }
                 }
+            }
+            catch (System.Exception ex)
+            {
+                return;
             }
         }
 
