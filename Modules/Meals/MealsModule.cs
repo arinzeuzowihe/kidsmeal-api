@@ -225,15 +225,16 @@ public class MealsModule : IModule
             if (histories == null || !histories.Any())
                 return Results.NoContent();
 
-            var finalizedHistory = histories.Select(h => new MealHistoryEntry (
-                h.KidId,
-                ((h.WasSuggestionSelected) ? h.MealSuggestion.MealName : h.AlternateMealName) ?? "N/A",
-                ((h.WasSuggestionSelected) ? h.MealSuggestion.MealDescription : h.AlternateMealDescription) ?? "N/A",
-                (h.MealSuggestion != null) ? h.MealSuggestion.MealType.ToString() : "N/A",
-                (h.MealSuggestion != null) ? h.MealSuggestion.CreatedOn.ToShortDateString() : "N/A"
-            ));
+            var finalizedHistory = histories.OrderByDescending(h => h.MealSuggestion.CreatedOn)
+                                            .Select(h => new MealHistoryEntry (
+                                                                                h.KidId,
+                                                                                ((h.WasSuggestionSelected) ? h.MealSuggestion.MealName : h.AlternateMealName) ?? "N/A",
+                                                                                ((h.WasSuggestionSelected) ? h.MealSuggestion.MealDescription : h.AlternateMealDescription) ?? "N/A",
+                                                                                (h.MealSuggestion != null) ? h.MealSuggestion.MealType.ToString() : "N/A",
+                                                                                (h.MealSuggestion != null) ? h.MealSuggestion.CreatedOn.ToShortDateString() : "N/A"
+                                                                            ));
 
-            return Results.Ok(new MealHistoryResponse(finalizedHistory));
+            return Results.Ok(finalizedHistory);
 
         } );
         
