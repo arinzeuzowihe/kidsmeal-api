@@ -1,5 +1,6 @@
 using KidsMealApi.DataAccess;
 using KidsMealApi.DataAccess.Models;
+using KidsMealApi.Modules.Enums;
 using KidsMealApi.Modules.Interfaces;
 using KidsMealApi.Modules.Meals;
 using KidsMealApi.Modules.Meals.Adapters;
@@ -129,10 +130,24 @@ public class MealsModule : IModule
             var endDate = DateTime.Now;
             var startDate = endDate.AddDays(-3);
             var recentHistories = new List<MealHistory>();
-            //we only care about meal history when each kid needs to get a distinct meal suggestion
-            if (!request.SameMealForAll)
+
+            // Make sure we have not already submitted feedback for a meal suggestion of the same meal type within the same day.
+            recentHistories = facade.HistoryService.GetMealHistory(request.KidIDs, request.MealType).Where(h => h.MealSuggestion.CreatedOn > startDate && endDate > h.MealSuggestion.CreatedOn).ToList();
+            
+            // Only exception is snacks because you can have multiple of thoses within a 24 hour period.
+            if (request.MealType != MealType.Snack)
             {
-                recentHistories = facade.HistoryService.GetMealHistory(request.KidIDs, request.MealType).Where(h => h.ConfirmedOn > startDate && endDate > h.ConfirmedOn).ToList();
+                var todaysHistories = recentHistories.Where(r => r.MealSuggestion.CreatedOn >= endDate.Date);
+                if(todaysHistories.Any(th => th.MealSuggestion.MealType == request.MealType))
+                {
+                    return Results.Ok(new PendingMealSuggestionResponse(new List<MealSuggestion>(), ClientResponseErrorCodes.MEAL_HIST_EXIST));
+                }
+            }
+
+            //we only care about meal history when each kid needs to get a distinct meal suggestion
+            if (request.SameMealForAll)
+            {
+                recentHistories.Clear();
             }
             var currentPreferences = facade.PreferenceService.GetPreferences(request.KidIDs, commonOnly: request.SameMealForAll).Where(p => p.MealType == request.MealType);
             if (!request.IncludeTakeOut)
