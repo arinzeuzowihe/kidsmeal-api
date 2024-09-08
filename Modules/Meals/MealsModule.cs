@@ -243,10 +243,10 @@ public class MealsModule : IModule
             var finalizedHistory = histories.OrderByDescending(h => h.MealSuggestion.CreatedOn)
                                             .Select(h => new MealHistoryEntry (
                                                                                 h.KidId,
-                                                                                ((h.WasSuggestionSelected) ? h.MealSuggestion.MealName : h.AlternateMealName) ?? "N/A",
-                                                                                ((h.WasSuggestionSelected) ? h.MealSuggestion.MealDescription : h.AlternateMealDescription) ?? "N/A",
-                                                                                (h.MealSuggestion != null) ? h.MealSuggestion.MealType.ToString() : "N/A",
-                                                                                (h.MealSuggestion != null) ? h.MealSuggestion.CreatedOn.ToShortDateString() : "N/A"
+                                                                                ((h.WasSuggestionSelected) ? h.MealSuggestion?.MealName : h.AlternateMealName),
+                                                                                ((h.WasSuggestionSelected) ? h.MealSuggestion?.MealDescription : h.AlternateMealDescription),
+                                                                                h.MealSuggestion?.MealType.ToString(),
+                                                                                h.MealSuggestion?.CreatedOn
                                                                             ));
 
             return Results.Ok(finalizedHistory);

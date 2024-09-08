@@ -29,13 +29,28 @@ namespace KidsMealApi.Modules.Meals.Core
     }
 
     public class MealHistoryEntry
-    {   public MealHistoryEntry(int kidID, string mealName, string mealDescription, string mealType, string eatenOn)
+    {
+        const string NOT_AVAILABLE = "N/A";
+        public MealHistoryEntry(int kidID, string mealName, string mealDescription, string mealType, DateTime? eatenOn)
         {
             KidID = kidID;
-            MealName = mealName;
-            MealDescription = mealDescription;
-            MealType = mealType;
-            EatenOn = eatenOn;
+            MealName = mealName ?? NOT_AVAILABLE;
+            MealDescription = mealDescription ?? NOT_AVAILABLE;
+            MealType = mealType ?? NOT_AVAILABLE;
+            if (!eatenOn.HasValue)
+            {
+                EatenOn = NOT_AVAILABLE;
+            }
+            else if (eatenOn.Value.Kind == DateTimeKind.Utc)
+            {
+                //TODO: User the user's timezone to do conversion
+                var localDateTime = TimeZoneInfo.ConvertTimeFromUtc(eatenOn.Value, TimeZoneInfo.FindSystemTimeZoneById("US Mountain Standard Time"));
+                EatenOn = localDateTime.ToShortDateString();
+            }
+            else 
+            {
+                EatenOn = eatenOn.Value.ToShortDateString();
+            }
         }
         public int KidID { get; set; }
 
