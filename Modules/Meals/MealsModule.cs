@@ -240,13 +240,14 @@ public class MealsModule : IModule
             if (histories == null || !histories.Any())
                 return Results.NoContent();
 
+            
             var finalizedHistory = histories.OrderByDescending(h => h.MealSuggestion.CreatedOn)
                                             .Select(h => new MealHistoryEntry (
                                                                                 h.KidId,
                                                                                 ((h.WasSuggestionSelected) ? h.MealSuggestion?.MealName : h.AlternateMealName),
                                                                                 ((h.WasSuggestionSelected) ? h.MealSuggestion?.MealDescription : h.AlternateMealDescription),
                                                                                 h.MealSuggestion?.MealType.ToString(),
-                                                                                h.MealSuggestion?.CreatedOn
+                                                                                h?.MealSuggestion.CreatedOnUtc
                                                                             ));
 
             return Results.Ok(finalizedHistory);

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
 
 namespace KidsMealApi.DataAccess.Models
@@ -15,6 +16,8 @@ namespace KidsMealApi.DataAccess.Models
         public MealType MealType { get; init; }
         public bool IsConfirmed { get; set; }
         public DateTime CreatedOn { get; init; }
+        [NotMapped]
+        public DateTime CreatedOnUtc => new DateTime(CreatedOn.Ticks, DateTimeKind.Utc); 
 
         public MealSuggestion()
         {
