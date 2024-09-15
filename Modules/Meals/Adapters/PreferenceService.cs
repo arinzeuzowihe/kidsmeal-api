@@ -203,7 +203,7 @@ namespace KidsMealApi.Modules.Meals.Adapters
             {
                 allPreferences = allPreferences.Where(mp => mp.IsActive);
             }
-            var allPreferencesGroupedByMeal = allPreferences.ToList().GroupBy(mp => mp.MealId);
+            var allPreferencesGroupedByMeal = allPreferences.ToList().GroupBy(mp => new { mp.MealId, mp.MealType });
             var commonPreferences = new List<MealPreference>();
             foreach (var group in allPreferencesGroupedByMeal.Where(g => g.Count() == kidIds.Count))
             {
