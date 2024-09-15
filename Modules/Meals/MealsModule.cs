@@ -127,7 +127,7 @@ public class MealsModule : IModule
                 return Results.BadRequest();
 
             //Get last 3 days worth of history
-            var endDate = DateTime.Now;
+            var endDate = DateTime.UtcNow;
             var startDate = endDate.AddDays(-3);
             var recentHistories = new List<MealHistory>();
 
@@ -137,7 +137,7 @@ public class MealsModule : IModule
             // Only exception is snacks because you can have multiple of thoses within a 24 hour period.
             if (request.MealType != MealType.Snack)
             {
-                var todaysHistories = recentHistories.Where(r => r.MealSuggestion.CreatedOn >= endDate.Date);
+                var todaysHistories = recentHistories.Where(r => r.MealSuggestion.CreatedOn >= endDate.AddDays(-1));
                 if(todaysHistories.Any(th => th.MealSuggestion.MealType == request.MealType))
                 {
                     return Results.Ok(new PendingMealSuggestionResponse(new List<MealSuggestion>(), ClientResponseErrorCodes.MEAL_HIST_EXIST));
