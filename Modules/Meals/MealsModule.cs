@@ -134,10 +134,10 @@ public class MealsModule : IModule
             // Make sure we have not already submitted feedback for a meal suggestion of the same meal type within the same day.
             recentHistories = facade.HistoryService.GetMealHistory(request.KidIDs, request.MealType).Where(h => h.MealSuggestion.CreatedOn > startDate && endDate > h.MealSuggestion.CreatedOn).ToList();
             
-            // Only exception is snacks because you can have multiple of thoses within a 24 hour period.
+            // Only exception is snacks because you can have multiple of thoses within a 18 hour period.
             if (request.MealType != MealType.Snack)
             {
-                var todaysHistories = recentHistories.Where(r => r.MealSuggestion.CreatedOn >= endDate.AddDays(-1));
+                var todaysHistories = recentHistories.Where(r => r.MealSuggestion.CreatedOn >= endDate.AddHours(-18));
                 if(todaysHistories.Any(th => th.MealSuggestion.MealType == request.MealType))
                 {
                     return Results.Ok(new PendingMealSuggestionResponse(new List<MealSuggestion>(), ClientResponseErrorCodes.MEAL_HIST_EXIST));
